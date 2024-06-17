@@ -1,12 +1,23 @@
-import FeedCard from "@/components/Feedcard";
+"use client"
+// import { useCurrentUser } from "@/hooks/user";
+import React, { useCallback, useMemo } from "react";
 import Image from "next/image";
-import { BiBell, BiHash, BiHomeCircle, BiUser } from "react-icons/bi";
-import { BsBookmark, BsEnvelope, BsTwitter } from "react-icons/bs";
+import { BiHash, BiHomeCircle, BiMoney, BiUser } from "react-icons/bi";
+import { BsBell, BsBookmark, BsEnvelope, BsTwitter } from "react-icons/bs";
+import { SlOptions } from "react-icons/sl";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import toast from "react-hot-toast";
+import { graphqlClient } from "@/clients/api";
+import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
+import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import Feedcard from "@/components/Feedcard";
 
 interface TwiterSidebarButton {
   title: string;
   icon: React.ReactNode;
 }
+
 const sidebarMenuItems: TwiterSidebarButton[] = [
   {
     title: "Home",
@@ -18,7 +29,7 @@ const sidebarMenuItems: TwiterSidebarButton[] = [
   },
   {
     title: "Notification",
-    icon: <BiBell />,
+    icon: <BsBell />,
   },
   {
     title: "Messages",
@@ -35,6 +46,27 @@ const sidebarMenuItems: TwiterSidebarButton[] = [
 ]
 
 export default function Home() {
+  const queryClient = useQueryClient();
+  const handleLoginWithGoogle = useCallback(
+    async (cred: CredentialResponse) => {
+      const googleToken = cred.credential;
+      if (!googleToken) return toast.error(`Google token not found`);
+
+      const { verifyGoogleToken } = await graphqlClient.request(
+        verifyUserGoogleTokenQuery,
+        { token: googleToken }
+      );
+
+      toast.success("Verified Success");
+      console.log(verifyGoogleToken);
+
+      if (verifyGoogleToken)
+        window.localStorage.setItem("__twitter_token", verifyGoogleToken);
+
+      // await queryClient.invalidateQueries(["curent-user"]);
+    },
+    [queryClient]
+  );
   return (
     <div>
       <div className="grid grid-cols-12 h-screen w-screen px-56">
@@ -62,16 +94,20 @@ export default function Home() {
         </div>
 
         <div className="col-span-5 border-r-[1px] border-l-[1px] border-gray-500">
-          <FeedCard />
-          <FeedCard />
-          <FeedCard />
-          <FeedCard />
-          <FeedCard />
-          <FeedCard />
-          <FeedCard />
+          <Feedcard />
+          <Feedcard />
+          <Feedcard />
+          <Feedcard />
+          <Feedcard />
+          <Feedcard />
+
         </div>
 
-        <div className="col-span-4"></div>
+        <div className="col-span-4">
+
+          <GoogleLogin onSuccess={handleLoginWithGoogle
+          } />
+        </div>
       </div>
     </div>
   );
